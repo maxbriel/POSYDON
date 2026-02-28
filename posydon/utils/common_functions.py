@@ -134,6 +134,28 @@ def stefan_boltzmann_law(L, R):
             / const.boltz_sigma) ** (1.0 / 4.0)
 
 
+def _horner_eval(coeffs, x):
+    """Evaluate a polynomial using Horner's method.
+
+    Parameters
+    ----------
+    coeffs : array_like
+        Polynomial coefficients [a0, a1, a2, ..., an] for
+        a0 + a1*x + a2*x^2 + ... + an*x^n.
+    x : float or array_like
+        Point(s) at which to evaluate.
+
+    Returns
+    -------
+    float or ndarray
+        The polynomial value(s).
+    """
+    result = coeffs[-1]
+    for c in reversed(coeffs[:-1]):
+        result = result * x + c
+    return result
+
+
 def rzams(m, z=0.02, Zsun=0.02):
     """Evaluate the zero age main sequence radius [1]_.
 
@@ -182,37 +204,16 @@ def rzams(m, z=0.02, Zsun=0.02):
 
     msp = np.zeros(17)
     msp[0] = 0.0
-    msp[1] = xz[1] + lzs * (xz[2] + lzs * (xz[3] + lzs
-                                           * (xz[4] + lzs * xz[5])))
-    msp[2] = xz[6] + lzs * (xz[7] + lzs * (xz[8] + lzs
-                                           * (xz[9] + lzs * xz[10])))
-    msp[3] = xz[11] + lzs * (xz[12] + lzs * (xz[13] + lzs
-                                             * (xz[14] + lzs * xz[15])))
-    msp[4] = xz[16] + lzs * (xz[17] + lzs * (xz[18] + lzs
-                                             * (xz[19] + lzs * xz[20])))
-    msp[5] = xz[21] + lzs * (xz[22] + lzs * (xz[23] + lzs
-                                             * (xz[24] + lzs * xz[25])))
-    msp[6] = xz[26] + lzs * (xz[27] + lzs * (xz[28] + lzs
-                                             * (xz[29] + lzs * xz[30])))
-    msp[7] = xz[31] + lzs * (xz[32] + lzs * (xz[33] + lzs
-                                             * (xz[34] + lzs * xz[35])))
-    msp[8] = xz[36] + lzs * (xz[37] + lzs * (xz[38] + lzs
-                                             * (xz[39] + lzs * xz[40])))
-    msp[9] = xz[41] + lzs * (xz[42] + lzs * (xz[43] + lzs
-                                             * (xz[44] + lzs * xz[45])))
-    msp[10] = xz[46] + lzs * (xz[47] + lzs * (xz[48] + lzs
-                                              * (xz[49] + lzs * xz[50])))
-    msp[11] = xz[51] + lzs * (xz[52] + lzs * (xz[53] + lzs
-                                              * (xz[54] + lzs * xz[55])))
-    msp[12] = xz[56] + lzs * (xz[57] + lzs * (xz[58] + lzs
-                                              * (xz[59] + lzs * xz[60])))
+    # Evaluate degree-4 polynomials for msp[1] through msp[12]
+    for i in range(1, 13):
+        start = 1 + (i - 1) * 5
+        msp[i] = _horner_eval(xz[start:start + 5], lzs)
+    # msp[13] is a single coefficient
     msp[13] = xz[61]
-    msp[14] = xz[62] + lzs * (xz[63] + lzs * (xz[64] + lzs
-                                              * (xz[65] + lzs * xz[66])))
-    msp[15] = xz[67] + lzs * (xz[68] + lzs * (xz[69] + lzs
-                                              * (xz[70] + lzs * xz[71])))
-    msp[16] = xz[72] + lzs * (xz[73] + lzs * (xz[74] + lzs
-                                              * (xz[75] + lzs * xz[76])))
+    # Evaluate degree-4 polynomials for msp[14] through msp[16]
+    for i in range(14, 17):
+        start = 62 + (i - 14) * 5
+        msp[i] = _horner_eval(xz[start:start + 5], lzs)
     mx = np.sqrt(m)
     r = ((msp[8] * m**2 + msp[9] * m**6) * mx + msp[10] * m**11
          + (msp[11] + msp[12] * mx) * m**19) / (
