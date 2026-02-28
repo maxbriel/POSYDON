@@ -268,14 +268,35 @@ Our tutorials are provided as Jupyter notebooks. If you want to run these notebo
     .. note::
         Remember to navigate to the directory containing the Jupyter notebooks or you won't see them listed in the Jupyter interface.
 
-.. note::
-    You might need to install a iPython kernel for the conda environment you are using.
-    You can do this by running inside your conda environment:
+4. **Register the POSYDON Kernel with Jupyter**
+
+    To run POSYDON notebooks in Jupyter you need to install ``ipykernel`` and register
+    the environment as a Jupyter kernel. With your POSYDON conda environment active, run:
+
+    **Using conda (recommended):**
 
     .. code-block:: bash
 
         conda install -c conda-forge ipykernel
-        python -m ipykernel install --name=posydon_env
+        python -m ipykernel install --user --name=posydon_env
+
+    **Alternatively, using pip:**
+
+    .. code-block:: bash
+
+        pip install ipykernel
+        python -m ipykernel install --user --name=posydon_env
+
+    Or install via the bundled ``notebooks`` optional extra:
+
+    .. code-block:: bash
+
+        pip install ".[notebooks]"
+        python -m ipykernel install --user --name=posydon_env
+
+    The ``--user`` flag installs the kernel spec into your home directory so it is
+    available to any Jupyter server. After registering, select the **posydon_env**
+    kernel from the Jupyter kernel menu when opening POSYDON notebooks.
 
 
 

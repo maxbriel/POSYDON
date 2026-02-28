@@ -110,6 +110,10 @@ extras_require = {
     "ml": ["tensorflow >= 2.13.0"],
     # for running population synthesis on HPC facilities
     "hpc": ["mpi4py >= 3.0.3"],
+    # for running POSYDON Jupyter notebooks
+    'notebooks': [
+        'ipykernel >= 6.0.0',
+    ],
     # development tooling
     'dev': [
         'pre-commit >= 3.7.0',
