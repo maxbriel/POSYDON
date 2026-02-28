@@ -13,8 +13,11 @@ np = totest.np
 pd = totest.pd
 
 from inspect import isclass, isfunction
+from unittest.mock import MagicMock
 
 from pytest import approx, fixture, raises, warns
+
+from posydon.utils.posydonwarning import Pwarn
 
 # fixtures
 
@@ -72,6 +75,78 @@ def massless_star():
         metallicity=1.0,
         mass=0.0,
     )
+
+
+@fixture
+def mock_single_star_run():
+    """A mock run object mimicking a single-star PSyGrid run."""
+    # columns needed by from_run: star_age + mapped STARPROPERTIES names
+    h_cols = [
+        'star_age', 'star_mass', 'log_R', 'log_L', 'lg_mdot',
+        'lg_system_mdot', 'lg_wind_mdot',
+        'he_core_mass', 'he_core_radius', 'c_core_mass', 'c_core_radius',
+        'o_core_mass', 'o_core_radius', 'co_core_mass', 'co_core_radius',
+        'center_h1', 'center_he4', 'center_c12', 'center_n14', 'center_o16',
+        'surface_h1', 'surface_he4', 'surface_c12', 'surface_n14',
+        'surface_o16',
+        'log_LH', 'log_LHe', 'log_LZ', 'log_Lnuc', 'c12_c12',
+        'center_gamma', 'avg_c_in_c_core', 'surf_avg_omega',
+        'surf_avg_omega_div_omega_crit', 'total_moment_of_inertia',
+        'log_total_angular_momentum', 'spin_parameter',
+        'conv_env_top_mass', 'conv_env_bot_mass',
+        'conv_env_top_radius', 'conv_env_bot_radius',
+        'conv_env_turnover_time_g', 'conv_env_turnover_time_l_b',
+        'conv_env_turnover_time_l_t', 'envelope_binding_energy',
+        'mass_conv_reg_fortides', 'thickness_conv_reg_fortides',
+        'radius_conv_reg_fortides',
+        'lambda_CE_1cent', 'lambda_CE_10cent', 'lambda_CE_30cent',
+        'lambda_CE_pure_He_star_10cent',
+        'total_mass_h1', 'total_mass_he4',
+    ]
+    dt = [(c, '<f8') for c in h_cols]
+    n_steps = 3
+    history1 = np.zeros(n_steps, dtype=dt)
+    # fill with simple evolving values
+    history1['star_age'] = [1e6, 5e6, 1e7]
+    history1['star_mass'] = [10.0, 9.8, 9.5]
+    history1['log_R'] = [0.5, 0.8, 1.0]
+    history1['log_L'] = [3.5, 3.6, 3.7]
+    history1['center_h1'] = [0.7, 0.4, 0.01]
+    history1['center_he4'] = [0.27, 0.55, 0.95]
+    history1['center_c12'] = [0.0, 0.0, 0.001]
+    history1['surface_h1'] = [0.7, 0.7, 0.7]
+    history1['log_LH'] = [3.5, 3.5, 2.0]
+    history1['log_LHe'] = [-10.0, -5.0, 3.0]
+    history1['log_Lnuc'] = [3.5, 3.5, 3.0]
+    history1['he_core_mass'] = [0.0, 1.0, 3.0]
+
+    # final_values: S1_ prefixed columns
+    fv_cols = [('S1_' + c, '<f8') for c in h_cols if c != 'star_age']
+    fv_cols += [
+        ('S1_avg_c_in_c_core_at_He_depletion', '<f8'),
+        ('S1_co_core_mass_at_He_depletion', '<f8'),
+    ]
+    final_values = np.zeros(1, dtype=fv_cols)[0]
+    for c in h_cols:
+        if c == 'star_age':
+            continue
+        final_values['S1_' + c] = history1[c][-1]
+    final_values['S1_avg_c_in_c_core_at_He_depletion'] = 0.35
+    final_values['S1_co_core_mass_at_He_depletion'] = 1.5
+
+    # initial_values with Z
+    initial_values = np.array([(0.0142,)], dtype=[('Z', '<f8')])[0]
+
+    # profile data
+    profile_cols = [('mass', '<f8'), ('radius', '<f8')]
+    final_profile1 = np.array([(1.0, 0.5), (0.5, 0.3)], dtype=profile_cols)
+
+    run = MagicMock()
+    run.history1 = history1
+    run.final_values = final_values
+    run.initial_values = initial_values
+    run.final_profile1 = final_profile1
+    return run
 
 
 # define test classes collecting several test functions
@@ -532,3 +607,214 @@ class TestSingleStarRepr:
 
     def test_repr_is_string(self, hms_star):
         assert isinstance(repr(hms_star), str)
+
+
+class TestSingleStarInitExtraCoverage:
+    """Additional init tests for remaining branches."""
+
+    def test_stripped_he_shell_burning(self):
+        # Covers lines 208-210: stripped_He in shell burning state
+        star = totest.SingleStar(
+            state='stripped_He_Shell_He_burning',
+            metallicity=1.0,
+            mass=3.0,
+        )
+        # stripped He shell burning: center_h1 = LOW_ABUNDANCE
+        assert star.center_h1 == approx(1e-6, abs=1e-10)
+        # center_he4 = LOW_ABUNDANCE
+        assert star.center_he4 == approx(1e-6, abs=1e-10)
+        # he_core_mass = mass for stripped_He
+        assert star.he_core_mass == 3.0
+
+    def test_co_state_inferred_differs(self):
+        # Covers line 257: CO state where inferred != given
+        # A 0.5 Msun "BH" should be inferred as WD
+        star = totest.SingleStar(
+            state='BH',
+            metallicity=1.0,
+            mass=0.5,
+        )
+        assert star.state == 'WD'
+
+    def test_uncaught_state_warns(self):
+        # Covers lines 265-270: unknown state triggers warning
+        with warns(match="was not caught"):
+            star = totest.SingleStar(
+                state='some_unknown_state',
+                metallicity=1.0,
+                mass=5.0,
+            )
+        # should still initialize as HMS ZAMS
+        expected_X = 1.0 - totest.zams_table[1.0] - 1.0 * totest.Zsun
+        assert star.center_h1 == approx(expected_X, abs=1e-10)
+
+    def test_wd_init(self):
+        star = totest.SingleStar(
+            state='WD',
+            metallicity=1.0,
+            mass=0.6,
+        )
+        assert star.state == 'WD'
+
+
+class TestSingleStarRestoreWithHooks:
+    """Tests for restore with hooks, covering lines 410-414."""
+
+    def test_restore_with_hooks(self, hms_star):
+        hms_star.my_extra_col = [1.0]
+        hms_star.mass = 8.0
+        hms_star.append_state()
+        hms_star.my_extra_col.append(2.0)
+        hms_star.mass = 6.0
+        hms_star.append_state()
+        hms_star.my_extra_col.append(3.0)
+
+        hook = MagicMock()
+        hook.extra_star_col_names = ['my_extra_col']
+
+        hms_star.restore(i=1, hooks=[hook])
+        assert len(hms_star.my_extra_col) == 2
+        assert hms_star.my_extra_col == [1.0, 2.0]
+        assert hms_star.mass == 8.0
+
+    def test_restore_with_hook_without_extra_cols(self, hms_star):
+        hms_star.mass = 8.0
+        hms_star.append_state()
+
+        hook = MagicMock(spec=[])  # no extra_star_col_names attribute
+        hms_star.restore(i=0, hooks=[hook])
+        assert hms_star.mass == 10.0
+
+
+class TestSingleStarToDfExtraCoverage:
+    """Additional to_df tests for remaining branches."""
+
+    def test_unequal_history_lengths(self, hms_star):
+        # Covers lines 484-485: unequal column lengths
+        hms_star.mass = 9.0
+        hms_star.append_state()
+        # Manually make one history shorter to simulate a failed run
+        hms_star.log_R_history = [0.0]
+        assert len(hms_star.mass_history) == 2
+        assert len(hms_star.log_R_history) == 1
+        df = hms_star.to_df()
+        assert len(df) == 2
+
+    def test_attribute_error_in_to_df(self, hms_star):
+        # Covers lines 493-494: missing attribute raises AttributeError
+        hms_star.custom_missing_history = [1.0]
+        # Request a column that exists but references a nonexistent attribute
+        del hms_star.custom_missing_history
+        with raises(AttributeError, match="Available attributes"):
+            hms_star.to_df(
+                extra_columns={'custom_missing_history': 'float64'})
+
+    def test_none_values_replaced(self, hms_star):
+        # Covers the None replacement branch
+        hms_star.profile_history = [None]
+        df = hms_star.to_df(include_profile=True)
+        assert np.isnan(df['profile'].iloc[0])
+
+    def test_null_value_custom(self, hms_star):
+        hms_star.profile_history = [None]
+        df = hms_star.to_df(include_profile=True, null_value=-999.0)
+        assert df['profile'].iloc[0] == -999.0
+
+
+class TestSingleStarToOnelineDfExtraCoverage:
+    """Additional to_oneline_df tests for natal_kick_array legacy."""
+
+    def test_natal_kick_array_legacy(self, ns_star):
+        # Covers lines 556-579: legacy natal_kick_array handling
+        ns_star.natal_kick_velocity = 100.0
+        ns_star.natal_kick_azimuthal_angle = 1.5
+        ns_star.natal_kick_polar_angle = 0.8
+        ns_star.natal_kick_mean_anomaly = 3.0
+        # the attribute must exist for hasattr to be True
+        ns_star.natal_kick_array = True
+
+        with warns(match="natal_kick_array"):
+            df = ns_star.to_oneline_df(
+                scalar_names=['natal_kick_array'])
+        assert 'natal_kick_array_0' in df.columns
+        assert 'natal_kick_array_1' in df.columns
+        assert 'natal_kick_array_2' in df.columns
+        assert 'natal_kick_array_3' in df.columns
+        assert 'natal_kick_velocity' in df.columns
+        assert df['natal_kick_velocity'].iloc[0] == 100.0
+        assert df['natal_kick_azimuthal_angle'].iloc[0] == 1.5
+
+
+class TestSingleStarFromRun:
+    """Tests for SingleStar.from_run static method."""
+
+    def test_from_run_no_history(self, mock_single_star_run):
+        # Covers from_run with history=False (default)
+        star = totest.SingleStar.from_run(mock_single_star_run)
+        assert isinstance(star, totest.SingleStar)
+        # mass should be the final_value
+        assert star.mass == approx(9.5)
+        # history should only have 1 entry (no history mode)
+        assert len(star.mass_history) == 1
+
+    def test_from_run_with_history(self, mock_single_star_run):
+        # Covers from_run with history=True
+        star = totest.SingleStar.from_run(mock_single_star_run, history=True)
+        assert len(star.mass_history) == 3
+        assert star.mass_history[0] == approx(10.0)
+        assert star.mass_history[-1] == approx(9.5)
+
+    def test_from_run_metallicity(self, mock_single_star_run):
+        star = totest.SingleStar.from_run(mock_single_star_run)
+        assert star.metallicity == approx(0.0142)
+
+    def test_from_run_metallicity_missing(self, mock_single_star_run):
+        # Covers the AttributeError branch for initial_values (line 623-624)
+        del mock_single_star_run.initial_values
+        star = totest.SingleStar.from_run(mock_single_star_run)
+        assert star.metallicity is None
+
+    def test_from_run_he_depletion_values(self, mock_single_star_run):
+        star = totest.SingleStar.from_run(mock_single_star_run)
+        assert star.avg_c_in_c_core_at_He_depletion == approx(0.35)
+        assert star.co_core_mass_at_He_depletion == approx(1.5)
+
+    def test_from_run_state_computed(self, mock_single_star_run):
+        star = totest.SingleStar.from_run(mock_single_star_run)
+        assert isinstance(star.state, str)
+        assert len(star.state) > 0
+
+    def test_from_run_state_history_with_history(self, mock_single_star_run):
+        star = totest.SingleStar.from_run(mock_single_star_run, history=True)
+        assert len(star.state_history) == 3
+        for s in star.state_history:
+            assert isinstance(s, str)
+
+    def test_from_run_with_profile(self, mock_single_star_run):
+        star = totest.SingleStar.from_run(
+            mock_single_star_run, profile=True)
+        assert star.profile is not None
+        assert star.profile is mock_single_star_run.final_profile1
+
+    def test_from_run_profile_history(self, mock_single_star_run):
+        star = totest.SingleStar.from_run(
+            mock_single_star_run, history=True, profile=True)
+        assert len(star.profile_history) == 3
+        assert star.profile_history[0] is None
+        assert star.profile_history[1] is None
+        assert star.profile_history[2] is mock_single_star_run.final_profile1
+
+    def test_from_run_none_history(self):
+        # Covers line 599-600: history1 is None
+        run = MagicMock()
+        run.history1 = None
+        star = totest.SingleStar.from_run(run)
+        assert isinstance(star, totest.SingleStar)
+
+    def test_from_run_unmapped_attrs_are_none(self, mock_single_star_run):
+        # 'state' and 'metallicity' are mapped to None in
+        # STAR_ATTRIBUTES_FROM_STAR_HISTORY_SINGLE, so their
+        # history comes from the None branch (col_history = [None]*n_steps)
+        star = totest.SingleStar.from_run(mock_single_star_run, history=True)
+        # profile is also None-mapped
+        assert all(v is None for v in star.profile_history)
