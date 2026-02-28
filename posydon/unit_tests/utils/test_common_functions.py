@@ -519,6 +519,34 @@ class TestFunctions:
         for (L, R, T) in tests:
             assert totest.stefan_boltzmann_law(L, R) == T
 
+    def test__horner_eval(self):
+        # missing arguments
+        with raises(TypeError):
+            totest._horner_eval()
+        with raises(TypeError):
+            totest._horner_eval([1.0])
+        # constant polynomial (single coefficient)
+        assert totest._horner_eval([5.0], 3.0) == approx(5.0, abs=1e-15)
+        # linear polynomial: 2 + 3*x
+        assert totest._horner_eval([2.0, 3.0], 4.0) == approx(14.0, abs=1e-15)
+        # quadratic: 1 + 2*x + 3*x^2, at x=2 -> 1+4+12 = 17
+        assert totest._horner_eval([1.0, 2.0, 3.0], 2.0) == approx(17.0,
+                                                                     abs=1e-15)
+        # degree-4 polynomial: a0 + a1*x + a2*x^2 + a3*x^3 + a4*x^4
+        # at x=0 returns a0
+        assert totest._horner_eval([7.0, 1.0, 2.0, 3.0, 4.0], 0.0) == \
+            approx(7.0, abs=1e-15)
+        # at x=1: sum of all coefficients
+        assert totest._horner_eval([1.0, 2.0, 3.0, 4.0, 5.0], 1.0) == \
+            approx(15.0, abs=1e-15)
+        # numerical check against direct evaluation
+        coeffs = [3.970417e-01, -3.2913574e-01, 3.4776688e-01,
+                  3.7470851e-01, 9.011915e-02]
+        x = -1.0
+        expected = (coeffs[0] + coeffs[1]*x + coeffs[2]*x**2
+                    + coeffs[3]*x**3 + coeffs[4]*x**4)
+        assert totest._horner_eval(coeffs, x) == approx(expected, rel=1e-12)
+
     def test_rzams(self):
         # missing argument
         with raises(TypeError, match="missing 1 required positional "\
