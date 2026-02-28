@@ -522,22 +522,29 @@ class TestFunctions:
     def test_find_nearest(self):
         # missing argument
         with raises(TypeError, match="missing 2 required positional "\
-                                     +"arguments: 'val' and 'array'"):
+                                     +"arguments: 'array' and 'value'"):
             totest.find_nearest()
         # example for [0.1, 0.3, 0.5, 0.7, 0.9]
         test_data = np.linspace(0.1, 0.9, 5)
         for v in test_data:
-            assert totest.find_nearest(v+0.1, test_data) == v
+            assert totest.find_nearest(test_data, v+0.1) == v
+        # test return_index=True path
+        for (i, v) in enumerate(test_data):
+            assert totest.find_nearest(test_data, v+0.1,
+                                       return_index=True) == i
 
     def test_find_index_nearest_neighbour(self):
         # missing argument
         with raises(TypeError, match="missing 2 required positional "\
                                      +"arguments: 'array' and 'value'"):
             totest.find_index_nearest_neighbour()
-        # example for [0.1, 0.3, 0.5, 0.7, 0.9]
+        # deprecated wrapper still returns correct indices
         test_data = np.linspace(0.1, 0.9, 5)
         for (i, v) in enumerate(test_data):
-            assert totest.find_index_nearest_neighbour(test_data, v+0.1) == i
+            with warns(DeprecationWarning,
+                       match="find_index_nearest_neighbour is deprecated"):
+                assert totest.find_index_nearest_neighbour(test_data,
+                                                           v+0.1) == i
 
     def test_get_final_proposed_points(self, capsys):
         # missing argument

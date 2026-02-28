@@ -8,7 +8,7 @@ import numpy as np
 from scipy import integrate
 
 import posydon.utils.constants as const
-from posydon.utils.gridutils import find_index_nearest_neighbour
+from posydon.utils.gridutils import find_nearest
 from posydon.utils.limits_thresholds import NEUTRINO_MASS_LOSS_UPPER_LIMIT
 from posydon.utils.posydonwarning import Pwarn
 
@@ -236,8 +236,9 @@ def get_initial_BH_properties(star, mass_collapsing, mass_central_BH,
     max_he_mass_ejected_SN = sum((he3_all[i_rem:-1] + he4_all[i_rem:-1])*dm_SN)
 
     # find index containing the mass MBH_0 (in CGS)
-    index_initial_BH = find_index_nearest_neighbour(enclosed_mass,
-                                                    mass_central_BH)
+    index_initial_BH = find_nearest(enclosed_mass,
+                                                    mass_central_BH,
+                                                    return_index=True)
     # mass of the initial BH collapsing directy assuming that
     # neutrino_mass_loss is lost thorugh neutrinos in the formation of
     # the central BH, note: this neutrinos are carring away angular

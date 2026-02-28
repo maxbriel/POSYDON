@@ -188,16 +188,41 @@ def get_cell_edges(grid_x, grid_y):
     return QQ, PP
 
 
-def find_nearest(val, array):
-    """Find the element of `array` closest to the value `val`."""
-    nearest_idx = (abs(val-array)).argmin()
-    return array[nearest_idx]
+def find_nearest(array, value, return_index=False):
+    """Find the element or index of `array` closest to `value`.
+
+    Parameters
+    ----------
+    array : array_like
+        The array to search in.
+    value : float
+        The value to find the nearest match for.
+    return_index : bool, optional
+        If True, return the index instead of the value. Default is False.
+
+    Returns
+    -------
+    float or int
+        The nearest element in `array`, or its index if `return_index=True`.
+    """
+    idx = np.argmin(np.abs(array - value))
+    return idx if return_index else array[idx]
 
 
 def find_index_nearest_neighbour(array, value):
-    """Find the index of `array` closest to the value."""
-    idex = np.argmin(np.abs(array - value))
-    return idex
+    """Find the index of `array` closest to the value.
+
+    .. deprecated::
+        Use ``find_nearest(array, value, return_index=True)`` instead.
+    """
+    import warnings
+    warnings.warn(
+        "find_index_nearest_neighbour is deprecated, use "
+        "find_nearest(array, value, return_index=True) instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    return find_nearest(array, value, return_index=True)
 
 
 def get_final_proposed_points(proposed_x, grid_x, proposed_y, grid_y):
@@ -229,10 +254,10 @@ def get_final_proposed_points(proposed_x, grid_x, proposed_y, grid_y):
     mapped_y = []
 
     for i, x in enumerate(proposed_x):
-        mapped_x.append(find_nearest(x, grid_x))
+        mapped_x.append(find_nearest(grid_x, x))
 
     for i, y in enumerate(proposed_y):
-        mapped_y.append(find_nearest(y, grid_y))
+        mapped_y.append(find_nearest(grid_y, y))
 
     # filtering: I only want one unique mapped value in each cell
     coords = np.array([mapped_x, mapped_y])
