@@ -656,6 +656,62 @@ class TestSingleStarInitExtraCoverage:
         )
         assert star.state == 'WD'
 
+    def test_hrich_core_he_burning(self):
+        # Covers branch 219->223: H-rich Core_He_burning (not stripped_He)
+        star = totest.SingleStar(
+            state='H-rich_Core_He_burning',
+            metallicity=1.0,
+            mass=8.0,
+        )
+        # H-rich Core_He_burning: default_log_R = HIGH_LOGR_GUESS = 4.0
+        assert star.log_R == 4.0
+        assert star.he_core_mass == 8.0
+
+    def test_kwargs_with_preexisting_scalar_attrs(self):
+        # Covers branches 337->339 ... 357->363, 365->364, 371->369, 376->375
+        # by passing all optional attrs as kwargs so hasattr is True
+        from posydon.grids.SN_MODELS import SN_MODELS
+        kwargs = dict(
+            state='H-rich_Core_H_burning',
+            metallicity=1.0,
+            mass=10.0,
+            # SN attributes (lines 329-358)
+            natal_kick_array=[200.0, 0.5, 1.0, 2.0],
+            spin_orbit_tilt_first_SN=0.1,
+            spin_orbit_tilt_second_SN=0.2,
+            f_fb=0.5,
+            SN_type='CCSN',
+            m_disk_accreted=0.01,
+            m_disk_radiated=0.02,
+            h1_mass_ej=1.0,
+            he4_mass_ej=2.0,
+            M4=1.5,
+            mu4=0.3,
+            interp1d=None,
+            # CE quantities (lines 363-366)
+            m_core_CE_1cent=0.5,
+            m_core_CE_10cent=0.6,
+            m_core_CE_30cent=0.7,
+            m_core_CE_pure_He_star_10cent=0.8,
+            r_core_CE_1cent=0.1,
+            r_core_CE_10cent=0.2,
+            r_core_CE_30cent=0.3,
+            r_core_CE_pure_He_star_10cent=0.4,
+            # He depletion quantities (lines 369-372)
+            avg_c_in_c_core_at_He_depletion=0.3,
+            co_core_mass_at_He_depletion=1.2,
+        )
+        # SN model attributes (lines 374-377)
+        for model_name in SN_MODELS.keys():
+            kwargs[model_name] = 'test_value'
+
+        star = totest.SingleStar(**kwargs)
+        assert star.spin_orbit_tilt_first_SN == 0.1
+        assert star.f_fb == 0.5
+        assert star.m_disk_accreted == 0.01
+        assert star.m_core_CE_1cent == 0.5
+        assert star.avg_c_in_c_core_at_He_depletion == 0.3
+
 
 class TestSingleStarRestoreWithHooks:
     """Tests for restore with hooks, covering lines 410-414."""
@@ -744,6 +800,12 @@ class TestSingleStarToOnelineDfExtraCoverage:
         assert df['natal_kick_velocity'].iloc[0] == 100.0
         assert df['natal_kick_azimuthal_angle'].iloc[0] == 1.5
 
+    def test_scalar_name_not_on_star(self, hms_star):
+        # Covers branch 553->552: scalar name not present as attribute
+        df = hms_star.to_oneline_df(
+            scalar_names=['nonexistent_scalar_attr'])
+        assert 'nonexistent_scalar_attr' not in df.columns
+
 
 class TestSingleStarFromRun:
     """Tests for SingleStar.from_run static method."""
@@ -818,3 +880,41 @@ class TestSingleStarFromRun:
         star = totest.SingleStar.from_run(mock_single_star_run, history=True)
         # profile is also None-mapped
         assert all(v is None for v in star.profile_history)
+
+    def test_from_run_he_depletion_non_s1_prefix(self):
+        # Covers branch 629->627: He depletion column not prefixed "S1_"
+        h_cols = ['star_age', 'star_mass', 'log_R', 'center_h1',
+                  'center_he4', 'center_c12', 'surface_h1', 'log_LH',
+                  'log_LHe', 'log_Lnuc']
+        dt = [(c, '<f8') for c in h_cols]
+        history1 = np.zeros(2, dtype=dt)
+        history1['star_age'] = [1e6, 5e6]
+        history1['star_mass'] = [10.0, 9.5]
+        history1['center_h1'] = [0.7, 0.01]
+        history1['center_he4'] = [0.27, 0.95]
+        history1['surface_h1'] = [0.7, 0.7]
+        history1['log_LH'] = [3.5, 2.0]
+        history1['log_LHe'] = [-10.0, 3.0]
+        history1['log_Lnuc'] = [3.5, 3.0]
+
+        fv_cols = [('S1_' + c, '<f8') for c in h_cols if c != 'star_age']
+        # add an at_He_depletion column WITHOUT S1_ prefix
+        fv_cols += [('S2_avg_c_in_c_core_at_He_depletion', '<f8')]
+        final_values = np.zeros(1, dtype=fv_cols)[0]
+        for c in h_cols:
+            if c == 'star_age':
+                continue
+            final_values['S1_' + c] = history1[c][-1]
+        final_values['S2_avg_c_in_c_core_at_He_depletion'] = 0.4
+
+        initial_values = np.array([(0.0142,)], dtype=[('Z', '<f8')])[0]
+
+        run = MagicMock()
+        run.history1 = history1
+        run.final_values = final_values
+        run.initial_values = initial_values
+
+        star = totest.SingleStar.from_run(run)
+        # S2_ prefixed column should NOT be set on the star
+        assert not hasattr(star, 'avg_c_in_c_core_at_He_depletion') \
+            or star.avg_c_in_c_core_at_He_depletion is None
