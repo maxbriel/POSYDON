@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>posydon.binary_evol.simulationproperties &mdash; posydon 2.3.2.dev1+ga8595f977 documentation</title>
+  <title>posydon.binary_evol.simulationproperties &mdash; posydon 2.3.3.dev29+g697743119 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=03e43079" />
       <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=9430f4b5" />
@@ -13,7 +13,7 @@
   
       <script src="../../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../../_static/documentation_options.js?v=df694a17"></script>
+      <script src="../../../_static/documentation_options.js?v=259c9fcb"></script>
       <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -643,9 +643,11 @@
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
-<span class="sd">        dict</span>
-<span class="sd">            The updated ``step_kwargs`` dictionary, containing a validated</span>
-<span class="sd">            ``metallicity`` entry and potentially a ``track_matcher`` object.</span>
+<span class="sd">        tuple</span>
+<span class="sd">            The step tuple containing the step function and the updated</span>
+<span class="sd">            ``step_kwargs`` dictionary. This new step_kwargs contains a</span>
+<span class="sd">            validated ``metallicity`` entry and potentially a</span>
+<span class="sd">            ``track_matcher`` object.</span>
 
 <span class="sd">        Notes</span>
 <span class="sd">        -----</span>
@@ -655,6 +657,10 @@
 <span class="sd">        for repeated `(metallicity, step_name)` combinations.</span>
 <span class="sd">        """</span>
         <span class="n">step_func</span><span class="p">,</span> <span class="n">step_kwargs</span> <span class="o">=</span> <span class="n">step_tup</span>
+        <span class="c1"># copy these to track what was originally passed before adding defaults</span>
+        <span class="c1"># in case we need to update a TrackMatcher for a step, this method only</span>
+        <span class="c1"># cares about updating what it is told to, not everything.</span>
+        <span class="n">original_step_kwargs</span> <span class="o">=</span> <span class="n">step_kwargs</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
 
         <span class="c1"># check/assign metallicity for the step</span>
         <span class="k">if</span> <span class="s2">"metallicity"</span> <span class="ow">in</span> <span class="n">step_func</span><span class="o">.</span><span class="n">DEFAULT_KWARGS</span><span class="p">:</span>
@@ -674,26 +680,139 @@
         <span class="k">if</span> <span class="n">step_name</span> <span class="ow">in</span> <span class="n">step_grid_map</span><span class="p">:</span>
             <span class="n">step_kwargs</span><span class="p">[</span><span class="s1">'grid_path'</span><span class="p">]</span> <span class="o">=</span> <span class="n">step_grid_map</span><span class="p">[</span><span class="n">step_name</span><span class="p">]</span>
 
-        <span class="c1"># each metallicity/step combo could require</span>
-        <span class="c1"># a unique TrackMatcher, so check for that</span>
-        <span class="n">matcher_key</span> <span class="o">=</span> <span class="p">(</span><span class="n">metallicity</span><span class="p">,</span> <span class="n">step_name</span><span class="p">)</span>
         <span class="k">if</span> <span class="s2">"track_matcher"</span> <span class="ow">in</span> <span class="n">step_func</span><span class="o">.</span><span class="n">DEFAULT_KWARGS</span><span class="p">:</span>
-            <span class="n">matcher_needed</span> <span class="o">=</span> <span class="n">matcher_key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">track_matchers</span>
-            <span class="k">if</span> <span class="n">matcher_needed</span><span class="p">:</span>
-                <span class="c1"># create TrackMatcher if needed</span>
-                <span class="n">step_kwargs</span><span class="p">,</span> <span class="n">matcher_kwargs</span> <span class="o">=</span> <span class="n">TrackMatcher</span><span class="o">.</span><span class="n">separate_kwargs</span><span class="p">(</span><span class="n">step_kwargs</span><span class="p">)</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">create_track_matcher</span><span class="p">(</span><span class="n">metallicity</span><span class="p">,</span> <span class="n">step_name</span><span class="p">,</span> <span class="n">matcher_kwargs</span><span class="p">)</span>
-
-            <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
-                <span class="n">kw_list</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">"</span><span class="se">\t</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">val</span><span class="si">}</span><span class="s2">"</span> <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">matcher_kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">()]</span>
-                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"matcher_kwargs: </span><span class="se">\n</span><span class="s2">"</span> <span class="o">+</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">kw_list</span><span class="p">))</span>
-            <span class="n">step_kwargs</span><span class="p">[</span><span class="s1">'track_matcher'</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">track_matchers</span><span class="p">[</span><span class="n">matcher_key</span><span class="p">]</span>
+            <span class="c1"># each metallicity/step combo could require</span>
+            <span class="c1"># a unique TrackMatcher, so check for that</span>
+            <span class="n">step_kwargs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_check_track_matcher</span><span class="p">(</span><span class="n">metallicity</span><span class="p">,</span>
+                                                    <span class="n">step_name</span><span class="p">,</span>
+                                                    <span class="n">step_kwargs</span><span class="p">,</span>
+                                                    <span class="n">original_step_kwargs</span><span class="p">,</span>
+                                                    <span class="n">verbose</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="s2">"RNG"</span> <span class="ow">in</span> <span class="n">step_func</span><span class="o">.</span><span class="n">DEFAULT_KWARGS</span><span class="p">:</span>
             <span class="n">step_kwargs</span><span class="p">[</span><span class="s1">'RNG'</span><span class="p">]</span> <span class="o">=</span> <span class="n">RNG</span>
 
-        <span class="k">return</span> <span class="n">step_tup</span></div>
+        <span class="k">return</span> <span class="p">(</span><span class="n">step_func</span><span class="p">,</span> <span class="n">step_kwargs</span><span class="p">)</span></div>
 
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_check_track_matcher</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">metallicity</span><span class="p">,</span> <span class="n">step_name</span><span class="p">,</span> <span class="n">step_kwargs</span><span class="p">,</span>
+                            <span class="n">original_step_kwargs</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""</span>
+<span class="sd">        Validate, create, update, and assign the TrackMatcher for an evolution step.</span>
+
+<span class="sd">        A unique TrackMatcher is maintained for each ``(metallicity, step_name)``</span>
+<span class="sd">        combination. If a TrackMatcher for the requested combination does not</span>
+<span class="sd">        already exist in this SimulationProperties, one is created using the</span>
+<span class="sd">        supplied matcher-specific keyword arguments. If one already exists,</span>
+<span class="sd">        its explicitly supplied properties are compared against the existing</span>
+<span class="sd">        values and updated when necessary. If an updated property is one of the</span>
+<span class="sd">        TrackMatcher's training triggers, the TrackMatcher is recreated so that</span>
+<span class="sd">        it is retrained with the new settings.</span>
+
+<span class="sd">        TrackMatcher-specific keyword arguments are separated from the remaining</span>
+<span class="sd">        step keyword arguments using ``TrackMatcher.separate_kwargs``. The</span>
+<span class="sd">        resulting TrackMatcher instance is then added to ``step_kwargs`` under</span>
+<span class="sd">        the ``"track_matcher"`` key.</span>
+
+<span class="sd">        TrackMatchers for other metallicities associated with the same step are</span>
+<span class="sd">        removed after the requested matcher has been created or retrieved. This</span>
+<span class="sd">        limits the number of simultaneously stored TrackMatcher objects and</span>
+<span class="sd">        reduces memory usage.</span>
+
+<span class="sd">        Note that in multi-metallicity runs, each metallicity is assigned to a</span>
+<span class="sd">        unique BinaryPopulation, each of which has its own unique</span>
+<span class="sd">        SimulationProperties at that given metallicity..</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        metallicity : float</span>
+<span class="sd">            Stellar metallicity associated with the evolutionary step. This value</span>
+<span class="sd">            is used together with ``step_name`` to identify the required</span>
+<span class="sd">            TrackMatcher.</span>
+<span class="sd">        step_name : str</span>
+<span class="sd">            Name of the evolutionary step for which the TrackMatcher is required.</span>
+<span class="sd">        step_kwargs : dict</span>
+<span class="sd">            Keyword arguments for the step. TrackMatcher-specific arguments are</span>
+<span class="sd">            separated from this dictionary and the resulting TrackMatcher instance</span>
+<span class="sd">            is added under the ``"track_matcher"`` key.</span>
+<span class="sd">        original_step_kwargs : dict</span>
+<span class="sd">            Copy of the keyword arguments originally supplied to the evolution step</span>
+<span class="sd">            before defaults or other values were added. Only properties explicitly</span>
+<span class="sd">            present in this dictionary are considered when determining whether an</span>
+<span class="sd">            existing TrackMatcher needs to be updated.</span>
+<span class="sd">        verbose : bool, optional</span>
+<span class="sd">            If True, print the TrackMatcher keyword arguments used for the current</span>
+<span class="sd">            step.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        dict</span>
+<span class="sd">            The updated step keyword arguments containing the TrackMatcher-specific</span>
+<span class="sd">            arguments removed and the appropriate TrackMatcher instance assigned</span>
+<span class="sd">            to the ``"track_matcher"`` key.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        - TrackMatcher objects are stored in ``self.track_matchers`` using</span>
+<span class="sd">        ``(metallicity, step_name)`` as the key.</span>
+<span class="sd">        - GRIDInterpolator objects required by the TrackMatcher are created and</span>
+<span class="sd">        cached by ``create_track_matcher``.</span>
+<span class="sd">        - Existing TrackMatchers are reused when their explicitly supplied</span>
+<span class="sd">        configuration has not changed.</span>
+<span class="sd">        - If a training-triggering TrackMatcher property changes, the existing</span>
+<span class="sd">        matcher is recreated using the updated configuration.</span>
+<span class="sd">        - TrackMatchers for other metallicities but the same ``step_name`` are</span>
+<span class="sd">        deleted to conserve memory.</span>
+<span class="sd">        """</span>
+
+        <span class="n">matcher_key</span> <span class="o">=</span> <span class="p">(</span><span class="n">metallicity</span><span class="p">,</span> <span class="n">step_name</span><span class="p">)</span>
+        <span class="n">matcher_needed</span> <span class="o">=</span> <span class="n">matcher_key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">track_matchers</span>
+        <span class="n">step_kwargs</span><span class="p">,</span> <span class="n">matcher_kwargs</span> <span class="o">=</span> <span class="n">TrackMatcher</span><span class="o">.</span><span class="n">separate_kwargs</span><span class="p">(</span><span class="n">step_kwargs</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">matcher_needed</span><span class="p">:</span>
+            <span class="c1"># Always just create a new TrackMatcher if it does not exist</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">create_track_matcher</span><span class="p">(</span><span class="n">metallicity</span><span class="p">,</span> <span class="n">step_name</span><span class="p">,</span> <span class="n">matcher_kwargs</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">track_matcher</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">track_matchers</span><span class="p">[</span><span class="n">matcher_key</span><span class="p">]</span>
+            <span class="n">retrain</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="c1"># subsequently check if any properties need to be updated,</span>
+            <span class="c1"># in case reloading for example</span>
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">matcher_kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="c1"># only care to update kwargs actually passed via load_step</span>
+                <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">original_step_kwargs</span><span class="p">:</span>
+                    <span class="n">do_update</span> <span class="o">=</span> <span class="n">track_matcher</span><span class="o">.</span><span class="n">kwargs</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">!=</span> <span class="n">original_step_kwargs</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+                    <span class="k">if</span> <span class="n">do_update</span><span class="p">:</span>
+                        <span class="nb">setattr</span><span class="p">(</span><span class="n">track_matcher</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">matcher_kwargs</span><span class="p">[</span><span class="n">k</span><span class="p">])</span>
+                        <span class="n">track_matcher</span><span class="o">.</span><span class="n">kwargs</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">matcher_kwargs</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+                        <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">track_matcher</span><span class="o">.</span><span class="n">TRAINING_TRIGGERS</span><span class="p">:</span>
+                            <span class="n">retrain</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">if</span> <span class="n">retrain</span><span class="p">:</span>
+                <span class="n">updated_kwargs</span> <span class="o">=</span> <span class="n">track_matcher</span><span class="o">.</span><span class="n">kwargs</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">create_track_matcher</span><span class="p">(</span><span class="n">metallicity</span><span class="p">,</span> <span class="n">step_name</span><span class="p">,</span> <span class="n">updated_kwargs</span><span class="p">)</span>
+        <span class="c1"># check for and delete any old TrackMatcher's this step has to save RAM</span>
+        <span class="k">for</span> <span class="n">mk</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">track_matchers</span><span class="p">):</span>
+            <span class="n">this_met</span><span class="p">,</span> <span class="n">this_stepn</span> <span class="o">=</span> <span class="n">mk</span>
+            <span class="k">if</span> <span class="n">this_met</span> <span class="o">!=</span> <span class="n">metallicity</span> <span class="ow">and</span> <span class="n">this_stepn</span> <span class="o">==</span> <span class="n">step_name</span><span class="p">:</span>
+                <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">track_matchers</span><span class="p">[</span><span class="n">mk</span><span class="p">]</span>
+                <span class="c1"># delete associated cached grids to save RAM too,</span>
+                <span class="c1"># but only if no other TrackMatcher is using this</span>
+                <span class="c1"># metallicity. Otherwise, grid still needed.</span>
+                <span class="n">other_steps_at_this_met</span> <span class="o">=</span> <span class="nb">any</span><span class="p">(</span><span class="n">other_met</span> <span class="o">==</span> <span class="n">this_met</span>
+                                          <span class="k">for</span> <span class="n">other_met</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">track_matchers</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">other_steps_at_this_met</span><span class="p">:</span>
+                    <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">grids_Hrich</span><span class="p">[</span><span class="n">this_met</span><span class="p">]</span>
+                    <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">grids_strippedHe</span><span class="p">[</span><span class="n">this_met</span><span class="p">]</span>
+
+
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="n">kw_list</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">"</span><span class="se">\t</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">val</span><span class="si">}</span><span class="s2">"</span> <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">matcher_kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">()]</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"matcher_kwargs: </span><span class="se">\n</span><span class="s2">"</span> <span class="o">+</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">kw_list</span><span class="p">))</span>
+        <span class="c1"># reference ths TrackMatcher in this step's kwargs</span>
+        <span class="n">step_kwargs</span><span class="p">[</span><span class="s1">'track_matcher'</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">track_matchers</span><span class="p">[</span><span class="n">matcher_key</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">step_kwargs</span>
 
 <div class="viewcode-block" id="SimulationProperties.create_track_matcher">
 <a class="viewcode-back" href="../../../api_reference/posydon.binary_evol.html#posydon.binary_evol.simulationproperties.SimulationProperties.create_track_matcher">[docs]</a>
@@ -1072,7 +1191,7 @@
   </div>
   <div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
     <span class="rst-current-version" data-toggle="rst-current-version">
-      Version: 2.3.2.dev1+ga8595f977
+      Version: 2.3.3.dev29+g697743119
       <span class="fa fa-caret-down"></span>
     </span>
     <div class="rst-other-versions">
@@ -1080,7 +1199,7 @@
         <dl>
             <dt> v2</dt>
             
-            <dd><a href="https://posydon.org/POSYDON/v2.3.1/index.html">2.3</a></dd>
+            <dd><a href="https://posydon.org/POSYDON/v2.3.2/index.html">2.3</a></dd>
             
         </dl>
         

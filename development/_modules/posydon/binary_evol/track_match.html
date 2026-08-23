@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>posydon.binary_evol.track_match &mdash; posydon 2.3.2.dev1+ga8595f977 documentation</title>
+  <title>posydon.binary_evol.track_match &mdash; posydon 2.3.3.dev29+g697743119 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=03e43079" />
       <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=9430f4b5" />
@@ -13,7 +13,7 @@
   
       <script src="../../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../../_static/documentation_options.js?v=df694a17"></script>
+      <script src="../../../_static/documentation_options.js?v=259c9fcb"></script>
       <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -384,7 +384,15 @@
                       <span class="s2">"list_for_matching_postMS"</span><span class="p">:</span><span class="kc">None</span><span class="p">,</span>
                       <span class="s2">"list_for_matching_postHeMS"</span><span class="p">:</span><span class="kc">None</span><span class="p">,</span>
                       <span class="s2">"record_matching"</span><span class="p">:</span><span class="kc">False</span><span class="p">,</span>
-                      <span class="s2">"verbose"</span><span class="p">:</span><span class="kc">False</span><span class="p">}</span>
+                      <span class="s2">"verbose_matching"</span><span class="p">:</span><span class="kc">False</span><span class="p">}</span>
+
+    <span class="c1"># If you ever create a TrackMatcher, the first time you do, it will be trained</span>
+    <span class="c1"># using whatever settings exist for these kwargs. If you ever subsequently change</span>
+    <span class="c1"># these kwargs for that TrackMatcher, you'd need to retrain it. You can use this</span>
+    <span class="c1"># list to flag the TrackMatcher for retraining.</span>
+    <span class="n">TRAINING_TRIGGERS</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"grid_Hrich"</span><span class="p">,</span> <span class="s2">"grid_strippedHe"</span><span class="p">,</span> <span class="s2">"path"</span><span class="p">,</span> <span class="s2">"metallicity"</span><span class="p">,</span>
+                         <span class="s2">"list_for_matching_HMS"</span><span class="p">,</span> <span class="s2">"list_for_matching_HeStar"</span><span class="p">,</span>
+                         <span class="s2">"list_for_matching_postMS"</span><span class="p">,</span> <span class="s2">"list_for_matching_postHeMS"</span><span class="p">]</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 
@@ -409,10 +417,14 @@
             <span class="k">for</span> <span class="n">varname</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">DEFAULT_KWARGS</span><span class="p">:</span>
                 <span class="n">default_value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">DEFAULT_KWARGS</span><span class="p">[</span><span class="n">varname</span><span class="p">]</span>
                 <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">varname</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">varname</span><span class="p">,</span> <span class="n">default_value</span><span class="p">))</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">kwargs</span> <span class="o">=</span> <span class="n">kwargs</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">for</span> <span class="n">varname</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">DEFAULT_KWARGS</span><span class="p">:</span>
                 <span class="n">default_value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">DEFAULT_KWARGS</span><span class="p">[</span><span class="n">varname</span><span class="p">]</span>
                 <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">varname</span><span class="p">,</span> <span class="n">default_value</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">kwargs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">DEFAULT_KWARGS</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">metallicity</span> <span class="o">=</span> <span class="n">convert_metallicity_to_string</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">metallicity</span><span class="p">)</span>
 
@@ -554,7 +566,7 @@
             <span class="n">scaler_methods</span> <span class="o">=</span> <span class="n">list_for_matching</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
             <span class="n">bnds</span> <span class="o">=</span> <span class="n">list_for_matching</span><span class="p">[</span><span class="mi">3</span><span class="p">:]</span>
 
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose_matching</span><span class="p">:</span>
                 <span class="nb">print</span><span class="p">(</span><span class="s2">"Matching parameters and their normalizations:</span><span class="se">\n</span><span class="s2">"</span><span class="p">,</span>
                         <span class="n">match_attr_names</span><span class="p">,</span> <span class="n">rescale_facs</span><span class="p">)</span>
             <span class="k">for</span> <span class="n">htrack</span> <span class="ow">in</span> <span class="p">[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">]:</span>
@@ -877,7 +889,7 @@
 
         <span class="n">match_vals</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
 
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose_matching</span><span class="p">:</span>
             <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">Matching process started in detached step for "</span>
                   <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">star</span><span class="o">.</span><span class="n">state</span><span class="si">}</span><span class="s2"> star with matching "</span>
                   <span class="sa">f</span><span class="s2">"method = </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">matching_method</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
@@ -898,7 +910,7 @@
                                                                 <span class="n">get_root0</span><span class="p">,</span>
                                                                 <span class="n">get_track_val</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose_matching</span><span class="p">:</span>
             <span class="c1"># successful match</span>
             <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">notna</span><span class="p">(</span><span class="n">match_vals</span><span class="p">)):</span>
 
@@ -1228,7 +1240,7 @@
             <span class="n">scaler_methods</span> <span class="o">=</span> <span class="n">list_for_matching</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
             <span class="n">bnds</span> <span class="o">=</span> <span class="n">list_for_matching</span><span class="p">[</span><span class="mi">3</span><span class="p">:]</span>
 
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose_matching</span><span class="p">:</span>
                 <span class="nb">print</span><span class="p">(</span><span class="s2">"Matching parameters and their normalizations:</span><span class="se">\n</span><span class="s2">"</span><span class="p">,</span>
                       <span class="n">match_attr_names</span><span class="p">,</span> <span class="n">rescale_facs</span><span class="p">)</span>
 
@@ -1303,7 +1315,7 @@
                     <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">star</span><span class="o">.</span><span class="n">state</span><span class="si">}</span><span class="s2"> invalid for matching step"</span><span class="p">)</span>
 
             <span class="k">elif</span> <span class="n">match_type</span> <span class="o">==</span> <span class="s2">"alt"</span><span class="p">:</span>
-                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose_matching</span><span class="p">:</span>
                     <span class="nb">print</span><span class="p">(</span><span class="s2">"(Now trying to match with alternative parameters)"</span><span class="p">)</span>
 
                 <span class="c1"># set alternative matching metrics based on star state</span>
@@ -1323,7 +1335,7 @@
                       <span class="s2">"post-MS star with a stripped-He grid"</span><span class="p">,</span><span class="s2">"EvolutionWarning"</span><span class="p">)</span>
 
                 <span class="k">if</span> <span class="n">star</span><span class="o">.</span><span class="n">state</span> <span class="ow">in</span> <span class="n">STAR_STATES_FOR_HMS_MATCHING</span><span class="p">:</span>
-                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose_matching</span><span class="p">:</span>
                         <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"We cannot use match_type=</span><span class="si">{</span><span class="n">match_type</span><span class="si">}</span><span class="s2"> "</span> \
                                 <span class="s2">"since star is on the MS. Skipping..."</span><span class="p">)</span>
                     <span class="n">match_ok</span> <span class="o">=</span> <span class="kc">False</span>
@@ -1473,7 +1485,7 @@
 
             <span class="c1"># Powell's method does not work with bound in SciPy version &lt; 1.5.x</span>
             <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">'Powell'</span> <span class="ow">and</span> <span class="n">SCIPY_VER</span> <span class="o">&lt;</span> <span class="mf">1.5</span><span class="p">:</span>
-                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose_matching</span><span class="p">:</span>
                     <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Ignoring bounds because method = </span><span class="si">{</span><span class="n">method</span><span class="si">}</span><span class="s2"> "</span>
                           <span class="sa">f</span><span class="s2">"does not accept them in SciPy v</span><span class="si">{</span><span class="n">SCIPY_VER</span><span class="si">}</span><span class="s2">.x."</span><span class="p">)</span>
                 <span class="n">bounds</span> <span class="o">=</span> <span class="kc">None</span>
@@ -1487,7 +1499,7 @@
                 <span class="c1"># guard against NaN solutions, ensuring they will fail</span>
                 <span class="n">sol</span><span class="o">.</span><span class="n">fun</span> <span class="o">=</span> <span class="mf">1e99</span> <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">sol</span><span class="o">.</span><span class="n">fun</span><span class="p">)</span> <span class="k">else</span> <span class="n">sol</span><span class="o">.</span><span class="n">fun</span>
 
-                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose_matching</span><span class="p">:</span>
                     <span class="nb">print</span> <span class="p">(</span><span class="sa">f</span><span class="s2">"Matching attempt completed:"</span>
                             <span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">Best solution: </span><span class="si">{</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">sol</span><span class="o">.</span><span class="n">fun</span><span class="p">)</span><span class="si">}</span><span class="s2"> "</span>
                             <span class="sa">f</span><span class="s2">"(tol = </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">matching_tolerance</span><span class="si">}</span><span class="s2">)"</span>
@@ -1499,27 +1511,27 @@
 
             <span class="c1"># check for failures:</span>
             <span class="k">if</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">sol</span><span class="o">.</span><span class="n">fun</span><span class="p">)</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">matching_tolerance</span><span class="p">):</span>
-                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose_matching</span><span class="p">:</span>
                     <span class="nb">print</span> <span class="p">(</span><span class="sa">f</span><span class="s2">"Matching result: FAILED"</span>
                             <span class="s2">"</span><span class="se">\n</span><span class="s2">Reason: Solution exceeds tolerance "</span>
                             <span class="sa">f</span><span class="s2">"(</span><span class="si">{</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">sol</span><span class="o">.</span><span class="n">fun</span><span class="p">)</span><span class="si">}</span><span class="s2"> &gt; </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">matching_tolerance</span><span class="si">}</span><span class="s2">)"</span><span class="p">)</span>
                 <span class="n">match_ok</span> <span class="o">=</span> <span class="kc">False</span>
             <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="n">sol</span><span class="o">.</span><span class="n">success</span><span class="p">):</span>
-                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose_matching</span><span class="p">:</span>
                     <span class="nb">print</span> <span class="p">(</span><span class="sa">f</span><span class="s2">"Matching result: FAILED"</span>
                             <span class="s2">"</span><span class="se">\n</span><span class="s2">Reason: Optimizer failed (sol.success = "</span>
                             <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">sol</span><span class="o">.</span><span class="n">success</span><span class="si">}</span><span class="s2">)"</span>
                             <span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">Optimizer termination reason: </span><span class="si">{</span><span class="n">sol</span><span class="o">.</span><span class="n">message</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
                 <span class="n">match_ok</span> <span class="o">=</span> <span class="kc">False</span>
 
-            <span class="k">if</span> <span class="n">match_ok</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">match_ok</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose_matching</span><span class="p">:</span>
                 <span class="nb">print</span><span class="p">(</span><span class="s2">"Matching result: OK"</span><span class="p">)</span>
 
             <span class="k">return</span> <span class="n">sol</span><span class="p">,</span> <span class="n">new_htrack</span><span class="p">,</span> <span class="n">match_ok</span>
 
         <span class="c1"># END SUBFUNCTION DEFIITIONS</span>
 
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose_matching</span><span class="p">:</span>
             <span class="nb">print</span><span class="p">(</span><span class="n">DIVIDER_STR</span><span class="p">)</span>
 
         <span class="c1"># defined sequence of matching attempt types and methods</span>
@@ -1546,7 +1558,7 @@
             <span class="n">match_type</span> <span class="o">=</span> <span class="n">match_sequence</span><span class="p">[</span><span class="n">attempt_num</span><span class="p">][</span><span class="s2">"type"</span><span class="p">]</span>
             <span class="n">method</span> <span class="o">=</span> <span class="n">match_sequence</span><span class="p">[</span><span class="n">attempt_num</span><span class="p">][</span><span class="s2">"method"</span><span class="p">]</span>
 
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose_matching</span><span class="p">:</span>
                 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">Matching attempt </span><span class="si">{</span><span class="n">attempt_num</span><span class="si">}</span><span class="s2"> started..."</span><span class="p">)</span>
                 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"match_type = </span><span class="si">{</span><span class="n">match_type</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
                 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"method = </span><span class="si">{</span><span class="n">method</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
@@ -1568,7 +1580,7 @@
         <span class="c1"># if matching is still not successful, set result to NaN:</span>
         <span class="n">exceeds_tol</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">best_sol</span><span class="o">.</span><span class="n">fun</span><span class="p">)</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">matching_tolerance_hard</span>
         <span class="k">if</span> <span class="p">(</span><span class="n">exceeds_tol</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">best_sol</span><span class="o">.</span><span class="n">success</span><span class="p">):</span>
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose_matching</span><span class="p">:</span>
                 <span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">Final matching result: FAILED"</span><span class="p">)</span>
                 <span class="k">if</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">best_sol</span><span class="o">.</span><span class="n">fun</span><span class="p">)</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">matching_tolerance_hard</span><span class="p">):</span>
                     <span class="nb">print</span> <span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">Reason: Solution exceeds hard tolerance "</span><span class="o">+</span>\
@@ -1584,7 +1596,7 @@
 
         <span class="c1"># or else we found a solution</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose_matching</span><span class="p">:</span>
                 <span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">Final matching result: SUCCESS"</span>
                         <span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">Best solution within hard tolerance: "</span>
                         <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">best_sol</span><span class="o">.</span><span class="n">fun</span><span class="p">)</span><span class="si">:</span><span class="s2">.8f</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span> <span class="s2">"&lt;"</span><span class="p">,</span>
@@ -1651,7 +1663,7 @@
                 <span class="n">match_m0</span><span class="p">,</span> <span class="n">match_t0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">match_to_single_star</span><span class="p">(</span><span class="n">star</span><span class="p">)</span>
                 <span class="n">t_after_matching</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
 
-                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose_matching</span><span class="p">:</span>
                     <span class="n">match_tspan</span> <span class="o">=</span> <span class="n">t_after_matching</span><span class="o">-</span><span class="n">t_before_matching</span>
                     <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Matching duration: </span><span class="si">{</span><span class="n">match_tspan</span><span class="si">:</span><span class="s2">.6g</span><span class="si">}</span><span class="s2"> sec</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
 
@@ -1734,7 +1746,7 @@
         <span class="c1"># validate age data</span>
         <span class="n">i_bad</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">age</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">0</span>
         <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">i_bad</span><span class="p">):</span>
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose_matching</span><span class="p">:</span>
                 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Warning: found non-monotonic age data "</span>
                       <span class="sa">f</span><span class="s2">"while matching star (m0=</span><span class="si">{</span><span class="n">match_m0</span><span class="si">}</span><span class="s2">). "</span><span class="p">)</span>
             <span class="n">bad</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span>
@@ -1806,7 +1818,7 @@
 
         <span class="k">if</span> <span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">notna</span><span class="p">(</span><span class="n">log_total_J</span><span class="p">)</span> <span class="ow">and</span> <span class="n">pd</span><span class="o">.</span><span class="n">notna</span><span class="p">(</span><span class="n">total_MOI</span><span class="p">)):</span>
 
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose_matching</span><span class="p">:</span>
                 <span class="nb">print</span><span class="p">(</span><span class="s2">"Calculating post-match omega using "</span> \
                       <span class="s2">"pre-match angular momentum and moment of inertia"</span><span class="p">)</span>
 
@@ -1820,7 +1832,7 @@
             <span class="c1"># take into account radiation pressure)</span>
             <span class="k">if</span> <span class="n">pd</span><span class="o">.</span><span class="n">notna</span><span class="p">(</span><span class="n">omega</span><span class="p">):</span>
 
-                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose_matching</span><span class="p">:</span>
                     <span class="nb">print</span><span class="p">(</span><span class="s2">"Calculating post-match omega using "</span> \
                           <span class="s2">"pre-match surf_avg_omega"</span><span class="p">)</span>
 
@@ -1828,7 +1840,7 @@
 
             <span class="k">elif</span> <span class="n">pd</span><span class="o">.</span><span class="n">notna</span><span class="p">(</span><span class="n">omega_div_omega_c</span><span class="p">):</span>
 
-                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose_matching</span><span class="p">:</span>
                     <span class="nb">print</span><span class="p">(</span><span class="s2">"Calculating post-match omega using "</span> \
                           <span class="s2">"pre-match surf_avg_omega_div_omega_crit"</span><span class="p">)</span>
 
@@ -1854,7 +1866,7 @@
 
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">omega_in_rad_per_yr</span> <span class="o">=</span> <span class="mf">0.0</span>
-                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose_matching</span><span class="p">:</span>
                     <span class="nb">print</span><span class="p">(</span><span class="s2">"Could not calculate post-match omega, "</span> \
                           <span class="s2">"pre-match values are None or NaN."</span><span class="p">)</span>
                     <span class="nb">print</span><span class="p">(</span><span class="s2">"Pre-match rotation rates:"</span><span class="p">)</span>
@@ -1864,7 +1876,7 @@
                     <span class="n">Pwarn</span><span class="p">(</span><span class="s2">"Setting (post-match) rotation rate to zero."</span><span class="p">,</span>
                           <span class="s2">"InappropriateValueWarning"</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="ow">and</span> <span class="n">omega</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="p">(</span><span class="n">omega_in_rad_per_yr</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose_matching</span> <span class="ow">and</span> <span class="n">omega</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="p">(</span><span class="n">omega_in_rad_per_yr</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">):</span>
             <span class="nb">print</span><span class="p">(</span><span class="s2">"pre-match omega [rad/yr] = "</span><span class="p">,</span> <span class="n">omega</span> <span class="o">*</span> <span class="n">const</span><span class="o">.</span><span class="n">secyer</span><span class="p">)</span>
             <span class="nb">print</span><span class="p">(</span><span class="s2">"calculated omega [rad/yr] = "</span><span class="p">,</span> <span class="n">omega_in_rad_per_yr</span><span class="p">)</span>
             <span class="n">pcdiff</span> <span class="o">=</span> <span class="mf">100.0</span><span class="o">*</span><span class="p">(</span><span class="n">omega_in_rad_per_yr</span><span class="o">-</span><span class="n">omega</span> <span class="o">*</span> <span class="n">const</span><span class="o">.</span><span class="n">secyer</span><span class="p">)</span> \
@@ -2077,7 +2089,7 @@
         <span class="c1"># get the matched data of binary components</span>
         <span class="c1"># match secondary:</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">match_secondary</span><span class="p">:</span>
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose_matching</span><span class="p">:</span>
                 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">Matching secondary star (state = </span><span class="si">{</span><span class="n">secondary</span><span class="o">.</span><span class="n">state</span><span class="si">}</span><span class="s2">)..."</span><span class="p">)</span>
 
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">secondary_not_normal</span><span class="p">:</span>
@@ -2105,7 +2117,7 @@
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">match_primary</span><span class="p">:</span>
             <span class="c1"># match primary</span>
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose_matching</span><span class="p">:</span>
                 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">Matching primary star (state = </span><span class="si">{</span><span class="n">primary</span><span class="o">.</span><span class="n">state</span><span class="si">}</span><span class="s2">)..."</span><span class="p">)</span>
 
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">primary_not_normal</span><span class="p">:</span>
@@ -2473,7 +2485,7 @@
   </div>
   <div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
     <span class="rst-current-version" data-toggle="rst-current-version">
-      Version: 2.3.2.dev1+ga8595f977
+      Version: 2.3.3.dev29+g697743119
       <span class="fa fa-caret-down"></span>
     </span>
     <div class="rst-other-versions">
@@ -2481,7 +2493,7 @@
         <dl>
             <dt> v2</dt>
             
-            <dd><a href="https://posydon.org/POSYDON/v2.3.1/index.html">2.3</a></dd>
+            <dd><a href="https://posydon.org/POSYDON/v2.3.2/index.html">2.3</a></dd>
             
         </dl>
         
